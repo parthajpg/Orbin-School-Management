@@ -1,0 +1,152 @@
+# =====================================================================
+#  Orbin School – Application Configuration
+#  Environment-specific values are injected via environment variables.
+# =====================================================================
+
+spring:
+  application:
+    name: orbin-school
+
+  # ── DataSource ──────────────────────────────────────────────────────
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/orbin_school}
+    username: ${DATABASE_USERNAME:orbin}
+    password: ${DATABASE_PASSWORD:orbin_dev}
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      pool-name: OrbinHikariPool
+
+  # ── JPA / Hibernate ─────────────────────────────────────────────────
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        default_batch_fetch_size: 20
+        jdbc:
+          batch_size: 50
+        order_inserts: true
+        order_updates: true
+        generate_statistics: false
+
+  # ── Flyway ──────────────────────────────────────────────────────────
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: false
+    validate-on-migrate: true
+
+  # ── Cache ───────────────────────────────────────────────────────────
+  cache:
+    type: simple
+
+  # ── Async ───────────────────────────────────────────────────────────
+  task:
+    execution:
+      pool:
+        core-size: 5
+        max-size: 20
+        queue-capacity: 200
+        thread-name-prefix: orbin-async-
+    scheduling:
+      pool:
+        size: 5
+      thread-name-prefix: orbin-sched-
+
+  # ── Servlet ─────────────────────────────────────────────────────────
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 25MB
+
+# ── Server ────────────────────────────────────────────────────────────
+server:
+  port: ${PORT:8080}
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html,text/xml,text/plain
+    min-response-size: 1024
+  error:
+    include-message: never
+    include-stacktrace: never
+    include-binding-errors: never
+    include-exception: false
+
+# ── Actuator ──────────────────────────────────────────────────────────
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized
+      show-components: when-authorized
+  info:
+    env:
+      enabled: true
+
+# ── OpenAPI / Swagger ─────────────────────────────────────────────────
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
+  show-actuator: false
+
+# ── Orbin Custom Properties ───────────────────────────────────────────
+orbin:
+  jwt:
+    secret: ${JWT_SECRET:CHANGE_THIS_IN_PRODUCTION_USE_A_VERY_LONG_RANDOM_256BIT_SECRET}
+    access-token-expiration-ms: 900000        # 15 minutes
+    refresh-token-expiration-ms: 604800000    # 7 days
+
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
+
+  storage:
+    access-key: ${STORAGE_ACCESS_KEY:}
+    secret-key: ${STORAGE_SECRET_KEY:}
+    bucket: ${STORAGE_BUCKET:orbin-school-dev}
+    endpoint: ${STORAGE_ENDPOINT:https://s3.amazonaws.com}
+    region: ${STORAGE_REGION:ap-south-1}
+
+  whatsapp:
+    token: ${WHATSAPP_TOKEN:}
+    phone-number-id: ${WHATSAPP_PHONE_NUMBER_ID:}
+    verify-token: ${WHATSAPP_VERIFY_TOKEN:orbin_whatsapp_verify}
+    api-version: v19.0
+
+  rate-limit:
+    login:
+      capacity: 5
+      refill-tokens: 5
+      refill-seconds: 60
+    api:
+      capacity: 200
+      refill-tokens: 200
+      refill-seconds: 60
+    webhook:
+      capacity: 500
+      refill-tokens: 500
+      refill-seconds: 60
+
+# ── Logging ───────────────────────────────────────────────────────────
+logging:
+  level:
+    root: INFO
+    com.orbin.school: DEBUG
+    org.springframework.security: INFO
+    org.hibernate.SQL: INFO
+    org.flywaydb: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{schoolId}] [%X{userId}] %logger{36} - %msg%n"

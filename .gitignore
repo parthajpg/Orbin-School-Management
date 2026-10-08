@@ -1,0 +1,49 @@
+# =====================================================================
+# Orbin School Management — Git Ignore
+# =====================================================================
+
+# ── Maven / Java ───────────────────────────────────────────────────────
+target/
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+/orbin-backend/target/
+
+# ── Node.js / Next.js ──────────────────────────────────────────────────
+node_modules/
+/orbin-frontend/node_modules/
+/orbin-frontend/.next/
+/orbin-frontend/out/
+/orbin-frontend/build/
+.pnp
+.pnp.js
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.turbo
+
+# ── Environment & Secrets ─────────────────────────────────────────────
+.env*.local
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# ── Docker & Database ─────────────────────────────────────────────────
+pgdata/
+docker-data/
+
+# ── IDEs & Operating System ───────────────────────────────────────────
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+.project
+.classpath
+.settings/
+.DS_Store
+Thumbs.db
+*.log

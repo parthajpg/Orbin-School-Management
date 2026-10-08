@@ -1,0 +1,26 @@
+# ── Test Profile ───────────────────────────────────────────────────────
+spring:
+  datasource:
+    url: jdbc:h2:mem:orbin_test;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=PostgreSQL
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    database-platform: org.hibernate.dialect.H2Dialect
+  flyway:
+    enabled: false
+
+orbin:
+  jwt:
+    secret: TEST_SECRET_THAT_IS_256_BITS_LONG_FOR_HMAC_SHA_256_ALGORITHM_ORBIN
+    access-token-expiration-ms: 900000
+    refresh-token-expiration-ms: 604800000
+  cors:
+    allowed-origins: http://localhost:3000
+
+logging:
+  level:
+    com.orbin.school: DEBUG
+    org.springframework.security: DEBUG
