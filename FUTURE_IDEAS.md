@@ -22,11 +22,17 @@
 | **Digital Homework & Diary** | 🔄 **PARTIAL (Backend Only)** | `com.orbin.school.homework` (Entity, Controller, DTOs) | ⏳ Frontend UI page pending |
 | **Dynamic Attendance % Engine** | 🔄 **PARTIALLY IMPLEMENTED** | `AttendanceService.getStudentStats()` | Roll-call register in `/attendance` |
 | **Role-Decoupled Attendance Cockpit** | 🔄 **PARTIALLY IMPLEMENTED** | Attendance mark & batch WhatsApp alerts | ⏳ Dedicated HM morning checklist pending |
+| **Batch Promotion & Academic Rollover** | ⏳ **PLANNED (P1 PRIORITY)** | Year-end batch transition & repeat engine | ⏳ Promotion Wizard pending |
+| **Legal TC & Bonafide Generator** | ⏳ **PLANNED (P1 PRIORITY)** | Dues clearance validator & TC ledger | ⏳ Official Certificate Generator pending |
+| **Fee Installments & Late Fine Engine** | ⏳ **PLANNED (P1 PRIORITY)** | Term-based invoice split & daily fine rules | ⏳ Multi-term payment terminal pending |
+| **Staff Attendance, Leaves & Payroll** | ⏳ **PLANNED (P2 PRIORITY)** | Biometric log, leave ledger & pay-slip generator | ⏳ Staff HR & Payslip Portal pending |
+| **Campus Visitor & Student Out-Pass** | ⏳ **PLANNED (P2 PRIORITY)** | Gate entry log & authorized guardian verification | ⏳ Security Guard Terminal pending |
 | **Single HM Master Onboarding Sheet** | ⏳ **PLANNED** | Domain-specific bulk endpoints (`/students/bulk`, `/timetable/commit-import`) | Separate CSV uploaders |
 | **Universal 360° Student Dossier** | ⏳ **PLANNED** | Dispersed across `students`, `attendance`, `fees`, `exams` | ⏳ Unified modal/page pending |
 | **Dynamic Leaderboard & Ranks** | ⏳ **PLANNED** | Database stores raw test marks | ⏳ Live position shift & badges pending |
-| **Algorithmic CSP Auto-Scheduler** | ⏳ **PLANNED (Tier 2)** | Manual grid + collision detection working | ⏳ Constraint solver pending |
-| **Bus Transport, Library, PTM** | ⏳ **PLANNED** | Domain categories defined | ⏳ Full module lifecycle pending |
+| **Bus Transport Fleet & GPS Tracking** | ⏳ **PLANNED** | Route mapping & vehicle roster | ⏳ Transport Manager pending |
+| **Library Management & Barcode Scan** | ⏳ **PLANNED** | Catalog, issue/return ledger & fine tracking | ⏳ Library Desk pending |
+| **Parent-Teacher Meeting (PTM) Booking**| ⏳ **PLANNED** | Slot allocation matrix & teacher time-slots | ⏳ Parent PTM scheduler pending |
 
 ---
 
@@ -178,19 +184,54 @@ Unified screen consolidating:
 
 ---
 
-## 6. ADDITIONAL STRATEGIC FUTURE EXPANSIONS
+## 6. MISSION-CRITICAL LEGAL, OPERATIONAL & FINANCIAL EXPANSIONS
 
-1. **Digital Student Diary & Homework Broadcast `[🔄 BACKEND IMPLEMENTED, UI PENDING]`**
-   * Fully implemented in Spring Boot backend (`com.orbin.school.homework`: `Homework.java`, `HomeworkSubmission.java`, `HomeworkController.java`).
-   * *Next Step:* Build dedicated frontend page under `orbin-frontend/src/app/(school)/homework/`.
-2. **Multi-Tier Fee Concessions & Scholarships `[⏳ PLANNED]`**
-   * Custom concession rules (Sibling discounts, Staff child concessions) with automated ledger splits.
-3. **Integrated Bus Transport & Route Tracking `[⏳ PLANNED]`**
-   * Fleet routes, stops, vehicle capacities, driver assignments, and emergency route broadcasts.
-4. **Library & Inventory Management `[⏳ PLANNED]`**
-   * ISBN scanning, book issue/return tracking, overdue fine ledgers, and laboratory equipment tracking.
-5. **Parent-Teacher Meeting (PTM) Slot Booking `[⏳ PLANNED]`**
-   * 10-minute slot scheduler with individual subject teachers.
+### 6.1 Student Promotion & Academic Year Rollover Engine `[⏳ P1 PRIORITY]`
+* **The Operational Reality:** At the end of every academic year (March/April), 500 to 2,000 students must be transitioned to the next grade. Doing this student-by-student is impossible for school clerks.
+* **System Design:**
+  * **1-Click Class-to-Class Promotion Matrix:** Map source section $\rightarrow$ target section (e.g., `Class 5-A` $\rightarrow$ `Class 6-A`, `Class 5-B` $\rightarrow$ `Class 6-B`).
+  * **Status Resolution:**
+    * `PROMOTED`: Moves to higher grade; links to the new `academic_year_id`.
+    * `DETAINED / REPEATED`: Retained in the same grade tier.
+    * `GRADUATED / ALUMNI`: Class 10/12 outgoing students archived into official Alumni registry.
+  * **Automated Ledger Generation:** Automatically seeds the new academic year's fee structures and initial dues ledgers for all promoted students.
+
+### 6.2 Legal Transfer Certificate (TC) & Bonafide Generator `[⏳ P1 PRIORITY]`
+* **The Legal Mandate:** Education boards (CBSE, ICSE, State Boards) legally mandate standard, serial-numbered Transfer Certificates before a child can enroll in another institution.
+* **System Design:**
+  * **Automated Clearance Gate:** Checks that the student has `ZERO` pending library books, `ZERO` outstanding fee arrears, and verified attendance percentages before enabling the "Issue TC" action.
+  * **Government-Compliant Template:** Renders official school affiliation number, serial number (`TC-2026-XXXX`), reason for leaving (e.g. *Parent Job Transfer*), conduct remarks (*Good/Exemplary*), and board registration numbers.
+  * **Bonafide & Study Certificates:** 1-Click generation for passport, visa, or government scholarship verification.
+
+### 6.3 Fee Term Installments & Automated Late Fine Engine `[⏳ P1 PRIORITY]`
+* **The Financial Reality:** In real schools, fees are collected in 3 or 4 term installments (Term 1: April, Term 2: August, Term 3: December), not a single lump sum. Parents missing the due date incur daily or fixed fines.
+* **System Design:**
+  * **Term Installment Breakdown:** Subdivides total demanded tuition into configurable installment schedules with independent due dates.
+  * **Daily / Flat Late Fee Calculator:** Automated cron task calculating:
+    $$\text{Fine} = \begin{cases} 0, & \text{if } \text{Today} \le \text{Due Date} \\ \text{Base Fine} + (\text{Days Overdue} \times \text{Per-Day Fine}), & \text{if } \text{Today} > \text{Due Date} \end{cases}$$
+  * **Multi-Tier Concession & Scholarship Engine:** Sibling discounts (e.g. 15% off 2nd child tuition), staff-child free tuition waivers, and merit-based concessions.
+
+### 6.4 Faculty HR, Staff Attendance & Monthly Payroll Slips `[⏳ P2 PRIORITY]`
+* **The Operational Reality:** School faculty expect prompt, accurate monthly salary slips with tax deductions on the 1st of every month, while HMs must track teacher attendance and leaves.
+* **System Design:**
+  * **Staff Daily Attendance:** Biometric/RFID or 1-tap manual staff roll-call (`PRESENT`, `ABSENT`, `HALF_DAY`, `ON_DUTY`).
+  * **Leave Management:** Casual Leave (CL), Sick Leave (SL), Earned Leave (EL); teacher applies through staff portal, HM approves.
+  * **Salary Slip Engine:** Automatically calculates Gross Pay, Basic, HRA, DA, EPF/PF deductions, ESI, Professional Tax, and unpaid leave deductions. Generates downloadable PDF/printable salary slip.
+
+### 6.5 Campus Safety: Visitor Management & Student Out-Pass `[⏳ P2 PRIORITY]`
+* **The Security Reality:** Child protection laws require strictly monitored physical entry/exit to prevent unauthorized pickups or campus intruders.
+* **System Design:**
+  * **Visitor Gate Terminal:** Captures visitor name, phone, purpose of visit, person to meet, and issues digital/printed visitor pass.
+  * **Emergency Student Out-Pass:** If a parent picks up a sick child at 11:30 AM, front desk clerk issues a time-stamped Out-Pass matched against verified guardian phone numbers before security lets them exit the gate.
+
+### 6.6 Integrated Transport Fleet & Route Rosters `[⏳ PLANNED]`
+* Bus routes, pickup/drop-off stops, vehicle capacity limits, vehicle registration numbers, driver & conductor credentials, and roster of enrolled students mapped to each stop.
+
+### 6.7 School Infirmary & Medical Incident Log `[⏳ PLANNED]`
+* Student blood groups, critical allergies, chronic medical conditions (e.g. asthma inhaler alerts), and clinic incident logs (playground fall, first-aid administered, parent informed).
+
+### 6.8 Digital Noticeboard & PDF Circular Broadcasts `[⏳ PLANNED]`
+* Instant school-wide broadcasts (rain day emergency closures, sports day schedules, parent circulars) with direct PDF attachments.
 
 ---
 
