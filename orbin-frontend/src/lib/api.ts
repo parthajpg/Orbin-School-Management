@@ -21,7 +21,12 @@ import {
   StudentMarksRow,
   StaffDto,
   CreateStaffRequest,
-  WhatsAppNotificationDto
+  WhatsAppNotificationDto,
+  PeriodSlotDto,
+  TimetableEntryDto,
+  CreateTimetableEntryRequest,
+  TimetableImportRow,
+  TimetableValidationResult
 } from './types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
@@ -125,8 +130,61 @@ class ApiClient {
     return this.request<Section[]>(`/academic/classes/${classId}/sections`);
   }
 
-  async getSubjects(): Promise<Subject[]> {
-    return this.request<Subject[]>('/academic/subjects');
+  async getSubjects(classId?: string): Promise<Subject[]> {
+    const qs = classId ? `?classId=${classId}` : '';
+    return this.request<Subject[]>(`/academic/subjects${qs}`);
+  }
+
+  // ── Timetable Endpoints ───────────────────────────────────────────────────
+  async getPeriodSlots(): Promise<PeriodSlotDto[]> {
+    return this.request<PeriodSlotDto[]>('/academic/timetable/slots');
+  }
+
+  async getTimetableForSection(sectionId: string | number): Promise<TimetableEntryDto[]> {
+    return this.request<TimetableEntryDto[]>(`/academic/timetable/section/${sectionId}`);
+  }
+
+  async getTimetableForTeacher(teacherId: string | number, dayOfWeek?: number): Promise<TimetableEntryDto[]> {
+    const qs = dayOfWeek ? `?dayOfWeek=${dayOfWeek}` : '';
+    return this.request<TimetableEntryDto[]>(`/academic/timetable/teacher/${teacherId}${qs}`);
+  }
+
+  async getMyScheduleToday(): Promise<TimetableEntryDto[]> {
+    return this.request<TimetableEntryDto[]>('/academic/timetable/my-schedule');
+  }
+
+  async createTimetableEntry(payload: CreateTimetableEntryRequest): Promise<TimetableEntryDto> {
+    return this.request<TimetableEntryDto>('/academic/timetable', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async validateTimetableImport(rows: TimetableImportRow[]): Promise<TimetableValidationResult> {
+    return this.request<TimetableValidationResult>('/academic/timetable/validate-import', {
+      method: 'POST',
+      body: JSON.stringify(rows),
+    });
+  }
+
+  async commitTimetableImport(rows: TimetableImportRow[]): Promise<TimetableValidationResult> {
+    return this.request<TimetableValidationResult>('/academic/timetable/commit-import', {
+      method: 'POST',
+      body: JSON.stringify(rows),
+    });
+  }
+
+  async assignSubstitute(entryId: number, substituteTeacherId: number): Promise<TimetableEntryDto> {
+    return this.request<TimetableEntryDto>(`/academic/timetable/${entryId}/substitute`, {
+      method: 'POST',
+      body: JSON.stringify({ substituteTeacherId }),
+    });
+  }
+
+  async deleteTimetableEntry(entryId: number): Promise<void> {
+    return this.request<void>(`/academic/timetable/${entryId}`, {
+      method: 'DELETE',
+    });
   }
 
   // ── Students Endpoints ────────────────────────────────────────────────────
@@ -254,6 +312,35 @@ class ApiClient {
       percentage: Number(r.percentage || 0),
       grade: Number(r.percentage || 0) >= 90 ? 'A+' : Number(r.percentage || 0) >= 80 ? 'A' : Number(r.percentage || 0) >= 70 ? 'B' : 'C',
     }));
+  }
+
+  async createTest(payload: {
+    sectionId: number;
+    subjectId: number;
+    title: string;
+    testDate: string;
+    durationMin?: number;
+    maxMarks: number;
+    instructions?: string;
+  }): Promise<TestDto> {
+    return this.request<TestDto>('/exams', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async enterMarks(payload: {
+    testId: number;
+    marks: Array<{
+      studentId: number;
+      marksObtained: number;
+      remarks?: string;
+    }>;
+  }): Promise<any[]> {
+    return this.request<any[]>('/exams/marks', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
   }
 
   // ── Staff & Faculty Endpoints ─────────────────────────────────────────────

@@ -1,9 +1,15 @@
 package com.orbin.school.staff.service;
 
+import com.orbin.school.academic.entity.AcademicYear;
 import com.orbin.school.academic.entity.SchoolClass;
 import com.orbin.school.academic.entity.Section;
+import com.orbin.school.academic.entity.Subject;
+import com.orbin.school.academic.entity.TeacherAssignment;
+import com.orbin.school.academic.repository.AcademicYearRepository;
 import com.orbin.school.academic.repository.SchoolClassRepository;
 import com.orbin.school.academic.repository.SectionRepository;
+import com.orbin.school.academic.repository.SubjectRepository;
+import com.orbin.school.academic.repository.TeacherAssignmentRepository;
 import com.orbin.school.audit.service.AuditService;
 import com.orbin.school.common.exception.DuplicateResourceException;
 import com.orbin.school.common.exception.ResourceNotFoundException;
@@ -30,13 +36,16 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class StaffService {
 
-    private final StaffRepository       staffRepository;
-    private final SchoolRepository      schoolRepository;
-    private final UserRepository        userRepository;
-    private final SchoolClassRepository classRepository;
-    private final SectionRepository    sectionRepository;
-    private final PasswordEncoder       passwordEncoder;
-    private final AuditService          auditService;
+    private final StaffRepository             staffRepository;
+    private final SchoolRepository            schoolRepository;
+    private final UserRepository              userRepository;
+    private final SchoolClassRepository       classRepository;
+    private final SectionRepository          sectionRepository;
+    private final SubjectRepository          subjectRepository;
+    private final AcademicYearRepository      academicYearRepository;
+    private final TeacherAssignmentRepository teacherAssignmentRepository;
+    private final PasswordEncoder             passwordEncoder;
+    private final AuditService                auditService;
 
     // ── Get All Staff for Tenant School ──────────────────────────────
     @Transactional(readOnly = true)
@@ -129,6 +138,41 @@ public class StaffService {
 
         Staff saved = staffRepository.save(staff);
 
+        // If Homeroom is indicated or assignedSection is present with no subject IDs (Nursery / Primary):
+        boolean isHomeroom = Boolean.TRUE.equals(request.getIsHomeroom()) ||
+                (request.getAssignedSubjectIds() == null || request.getAssignedSubjectIds().isEmpty());
+
+        if (assignedSection != null && user != null && isHomeroom) {
+            assignedSection.setClassTeacher(user);
+            sectionRepository.save(assignedSection);
+        }
+
+        // If subject assignments provided (Secondary / Middle School):
+        if (request.getAssignedSubjectIds() != null && !request.getAssignedSubjectIds().isEmpty() && user != null && assignedSection != null && assignedClass != null) {
+            AcademicYear ay = academicYearRepository.findBySchoolIdAndCurrentTrue(schoolId)
+                    .orElseGet(() -> academicYearRepository.findBySchoolId(schoolId).stream().findFirst().orElse(null));
+            if (ay != null) {
+                for (Long subId : request.getAssignedSubjectIds()) {
+                    Subject sub = subjectRepository.findByIdAndSchoolId(subId, schoolId).orElse(null);
+                    if (sub != null) {
+                        try {
+                            TeacherAssignment ta = TeacherAssignment.builder()
+                                    .school(school)
+                                    .academicYear(ay)
+                                    .teacher(user)
+                                    .schoolClass(assignedClass)
+                                    .section(assignedSection)
+                                    .subject(sub)
+                                    .build();
+                            teacherAssignmentRepository.save(ta);
+                        } catch (Exception ex) {
+                            log.warn("Assignment already exists or error saving: {}", ex.getMessage());
+                        }
+                    }
+                }
+            }
+        }
+
         auditService.log("STAFF_CREATED", "staff", saved.getId(),
                 "Added staff: " + saved.getFirstName() + " " + saved.getLastName() + " (" + saved.getEmployeeId() + ")");
 
@@ -202,6 +246,22 @@ public class StaffService {
 
     // ── Mapping Helper ────────────────────────────────────────────────
     private StaffDto toDto(Staff s) {
+        boolean isHomeroom = s.getAssignedSection() != null && s.getUser() != null &&
+                s.getAssignedSection().getClassTeacher() != null &&
+                s.getAssignedSection().getClassTeacher().getId().equals(s.getUser().getId());
+
+        List<String> subjects = new ArrayList<>();
+        if (s.getUser() != null) {
+            subjects = teacherAssignmentRepository.findBySchoolIdAndTeacherId(s.getSchool().getId(), s.getUser().getId())
+                    .stream()
+                    .map(ta -> ta.getSubject().getName())
+                    .distinct()
+                    .collect(Collectors.toList());
+        }
+        if (subjects.isEmpty() && isHomeroom) {
+            subjects = List.of("Homeroom In-Charge");
+        }
+
         return StaffDto.builder()
                 .id(s.getId())
                 .employeeId(s.getEmployeeId())
@@ -218,7 +278,8 @@ public class StaffService {
                 .assignedClassName(s.getAssignedClass() != null ? s.getAssignedClass().getName() : null)
                 .assignedSectionId(s.getAssignedSection() != null ? s.getAssignedSection().getId() : null)
                 .assignedSectionName(s.getAssignedSection() != null ? s.getAssignedSection().getName() : null)
-                .subjectsTaught(Collections.emptyList())
+                .isHomeroom(isHomeroom)
+                .subjectsTaught(subjects)
                 .qualification(s.getQualification())
                 .dateOfJoining(s.getDateOfJoining())
                 .status(s.getStatus())

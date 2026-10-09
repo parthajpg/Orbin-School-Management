@@ -23,9 +23,12 @@ import {
   Share2,
   Loader2,
   AlertCircle,
-  RefreshCw
+  RefreshCw,
+  Sparkles,
+  BookOpen,
+  Layers
 } from 'lucide-react';
-import { StaffDto, CreateStaffRequest, StaffStatus, UserRole } from '@/lib/types';
+import { StaffDto, CreateStaffRequest, StaffStatus, UserRole, SchoolClass, Section, Subject } from '@/lib/types';
 import { useAuth } from '@/context/auth-context';
 import { api } from '@/lib/api';
 
@@ -68,15 +71,82 @@ export default function StaffPage() {
     role: 'TEACHER',
     designation: 'Subject Teacher',
     department: 'Academics',
-    assignedClassId: '1',
-    assignedSectionId: '1',
-    subjectsTaught: ['Mathematics'],
     qualification: 'B.Ed, Graduate',
     dateOfJoining: new Date().toISOString().split('T')[0],
     initialPassword: 'School@' + Math.floor(1000 + Math.random() * 9000),
   });
 
-  const [subjectsInput, setSubjectsInput] = useState('Mathematics, Science');
+  // Classroom & Subject Assignment State
+  const [classes, setClasses] = useState<SchoolClass[]>([]);
+  const [sections, setSections] = useState<Section[]>([]);
+  const [availableSubjects, setAvailableSubjects] = useState<Subject[]>([]);
+  const [selectedClassId, setSelectedClassId] = useState<string>('');
+  const [selectedSectionId, setSelectedSectionId] = useState<string>('');
+  const [isHomeroomMode, setIsHomeroomMode] = useState<boolean>(true);
+  const [selectedSubjectIds, setSelectedSubjectIds] = useState<number[]>([]);
+  const [loadingAcademic, setLoadingAcademic] = useState(false);
+
+  // Load classes from backend on mount
+  useEffect(() => {
+    async function loadAcademicClasses() {
+      try {
+        const cls = await api.getClasses();
+        setClasses(cls || []);
+      } catch (err) {
+        console.error('Failed to load academic classes', err);
+      }
+    }
+    loadAcademicClasses();
+  }, []);
+
+  // When class changes, fetch sections & determine if primary/nursery vs secondary
+  useEffect(() => {
+    if (!selectedClassId) {
+      setSections([]);
+      setAvailableSubjects([]);
+      setSelectedSectionId('');
+      setSelectedSubjectIds([]);
+      return;
+    }
+
+    const currentCls = classes.find((c) => String(c.id) === selectedClassId);
+    const clsName = (currentCls?.name || '').toLowerCase();
+    const isPrimaryOrNursery =
+      clsName.includes('nursery') ||
+      clsName.includes('lkg') ||
+      clsName.includes('ukg') ||
+      clsName.includes('class 1') ||
+      clsName.includes('class 2') ||
+      clsName.includes('class 3') ||
+      clsName.includes('class 4') ||
+      clsName.includes('class 5');
+
+    setIsHomeroomMode(isPrimaryOrNursery);
+    setSelectedSubjectIds([]);
+
+    async function loadSectionsAndSubjects() {
+      setLoadingAcademic(true);
+      try {
+        const [secs, subs] = await Promise.all([
+          api.getSections(selectedClassId),
+          !isPrimaryOrNursery ? api.getSubjects(selectedClassId) : Promise.resolve([]),
+        ]);
+        setSections(secs || []);
+        if (secs && secs.length > 0) {
+          setSelectedSectionId(String(secs[0].id));
+        } else {
+          setSelectedSectionId('');
+        }
+        setAvailableSubjects(subs || []);
+      } catch (err) {
+        console.error('Failed to load sections/subjects', err);
+      } finally {
+        setLoadingAcademic(false);
+      }
+    }
+
+    loadSectionsAndSubjects();
+  }, [selectedClassId, classes]);
 
   // Fetch real staff list from Spring Boot backend
   const fetchStaff = useCallback(async () => {
@@ -133,10 +203,6 @@ export default function StaffPage() {
     }
 
     setSubmitting(true);
-    const subjects = subjectsInput
-      .split(',')
-      .map((s) => s.trim())
-      .filter((s) => s.length > 0);
 
     const payload: CreateStaffRequest = {
       ...formData,
@@ -146,7 +212,11 @@ export default function StaffPage() {
       phone: formData.phone.trim(),
       designation: formData.designation.trim(),
       department: formData.department.trim(),
-      subjectsTaught: subjects,
+      assignedClassId: selectedClassId || undefined,
+      assignedSectionId: selectedSectionId || undefined,
+      isHomeroom: isHomeroomMode,
+      assignedSubjectIds: !isHomeroomMode ? selectedSubjectIds : [],
+      subjectsTaught: isHomeroomMode ? ['Homeroom In-Charge'] : [],
       qualification: formData.qualification || 'N/A',
       dateOfJoining: formData.dateOfJoining || new Date().toISOString().split('T')[0],
       initialPassword: formData.initialPassword || 'School@123',
@@ -200,7 +270,7 @@ export default function StaffPage() {
         dateOfJoining: new Date().toISOString().split('T')[0],
         initialPassword: 'School@' + Math.floor(1000 + Math.random() * 9000),
       });
-      setSubjectsInput('Mathematics, Science');
+      setSelectedSubjectIds([]);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to create staff account';
       showToast(msg);
@@ -501,14 +571,19 @@ export default function StaffPage() {
                         )}
                       </td>
 
-                      {/* Subjects */}
+                      {/* Subjects & Model */}
                       <td className="py-3.5 px-4">
-                        <div className="flex flex-wrap gap-1 max-w-[180px]">
-                          {staff.subjectsTaught && staff.subjectsTaught.length > 0 ? (
+                        <div className="flex flex-wrap gap-1 max-w-[200px]">
+                          {staff.isHomeroom || (staff.subjectsTaught && staff.subjectsTaught.includes('Homeroom In-Charge')) ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200">
+                              <Sparkles className="w-3 h-3 text-emerald-600" />
+                              <span>Homeroom Tutor</span>
+                            </span>
+                          ) : staff.subjectsTaught && staff.subjectsTaught.length > 0 ? (
                             staff.subjectsTaught.map((sub, idx) => (
                               <span
                                 key={idx}
-                                className="px-2 py-0.5 rounded bg-slate-100 text-slate-600 text-[10px] font-medium"
+                                className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200/60 text-[10px] font-semibold"
                               >
                                 {sub}
                               </span>
@@ -681,20 +756,133 @@ export default function StaffPage() {
                     type="text"
                     value={formData.department}
                     onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                    placeholder="e.g. Science"
+                    placeholder="e.g. Science / Primary Education"
                     className="w-full px-3 py-2 border border-slate-200 rounded-xl"
                   />
                 </div>
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Assigned Subjects</label>
+                  <label className="block font-semibold text-slate-700 mb-1">Qualification</label>
                   <input
                     type="text"
-                    value={subjectsInput}
-                    onChange={(e) => setSubjectsInput(e.target.value)}
-                    placeholder="e.g. Mathematics, Science"
+                    value={formData.qualification}
+                    onChange={(e) => setFormData({ ...formData, qualification: e.target.value })}
+                    placeholder="M.Sc., B.Ed."
                     className="w-full px-3 py-2 border border-slate-200 rounded-xl"
                   />
                 </div>
+              </div>
+
+              {/* Classroom & Pedagogical Teaching Allocation */}
+              <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 font-bold text-slate-800 text-xs">
+                    <Building2 className="w-4 h-4 text-blue-600" />
+                    <span>Classroom & Teaching Allocation</span>
+                  </div>
+                  {selectedClassId && (
+                    <span
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        isHomeroomMode
+                          ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                          : 'bg-blue-100 text-blue-800 border border-blue-200'
+                      }`}
+                    >
+                      {isHomeroomMode ? '⭐ Nursery & Primary (Homeroom)' : '📚 Secondary (Subject Specialist)'}
+                    </span>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">Assigned Class</label>
+                    <select
+                      value={selectedClassId}
+                      onChange={(e) => setSelectedClassId(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-white font-medium"
+                    >
+                      <option value="">-- Select Class --</option>
+                      {classes.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">Assigned Section</label>
+                    <select
+                      value={selectedSectionId}
+                      onChange={(e) => setSelectedSectionId(e.target.value)}
+                      disabled={!selectedClassId || sections.length === 0}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-white font-medium disabled:bg-slate-100"
+                    >
+                      {sections.length === 0 ? (
+                        <option value="">No sections found</option>
+                      ) : (
+                        sections.map((sec) => (
+                          <option key={sec.id} value={sec.id}>
+                            Section {sec.name} {sec.capacity ? `(${sec.capacity} seats)` : ''}
+                          </option>
+                        ))
+                      )}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Pedagogical Guidance Banner */}
+                {selectedClassId && isHomeroomMode && (
+                  <div className="p-2.5 bg-emerald-50/80 border border-emerald-200/80 rounded-lg flex items-start gap-2">
+                    <Sparkles className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <p className="text-[11px] text-emerald-800 leading-snug">
+                      <strong>Homeroom In-Charge:</strong> For Nursery & Primary grades, this teacher will be registered as the dedicated classroom tutor. Responsible for all class activities and the morning daily attendance roll call. No individual subjects required.
+                    </p>
+                  </div>
+                )}
+
+                {/* Subject Selector for Middle & High School */}
+                {selectedClassId && !isHomeroomMode && (
+                  <div className="space-y-1.5 pt-1 border-t border-slate-200/60">
+                    <div className="flex items-center justify-between">
+                      <label className="block font-semibold text-slate-700 text-[11px]">
+                        Select Subjects Taught in this Classroom *
+                      </label>
+                      <span className="text-[10px] text-slate-500 font-medium">
+                        {selectedSubjectIds.length} subject(s) selected
+                      </span>
+                    </div>
+
+                    {availableSubjects.length === 0 ? (
+                      <p className="text-[11px] text-slate-400 italic">No subjects configured for this class yet.</p>
+                    ) : (
+                      <div className="flex flex-wrap gap-1.5 pt-0.5">
+                        {availableSubjects.map((sub) => {
+                          const isSelected = selectedSubjectIds.includes(Number(sub.id));
+                          return (
+                            <button
+                              key={sub.id}
+                              type="button"
+                              onClick={() => {
+                                const idNum = Number(sub.id);
+                                setSelectedSubjectIds((prev) =>
+                                  isSelected ? prev.filter((id) => id !== idNum) : [...prev, idNum]
+                                );
+                              }}
+                              className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                                isSelected
+                                  ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                                  : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100 hover:border-slate-300'
+                              }`}
+                            >
+                              {isSelected ? '✓ ' : '+ '}
+                              {sub.name}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-3">

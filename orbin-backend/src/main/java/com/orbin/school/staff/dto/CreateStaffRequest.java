@@ -32,6 +32,8 @@ public class CreateStaffRequest {
     private String department;
     private Long assignedClassId;
     private Long assignedSectionId;
+    private Boolean isHomeroom;
+    private List<Long> assignedSubjectIds;
     private List<String> subjectsTaught;
     private String qualification;
     private LocalDate dateOfJoining;

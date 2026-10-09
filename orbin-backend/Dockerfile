@@ -23,7 +23,7 @@ RUN addgroup -S orbin && adduser -S orbin -G orbin
 USER orbin:orbin
 
 # Copy built artifact from builder stage
-COPY --from=builder --chown=orbin:orbin /workspace/app/target/*.jar app.jar
+COPY --from=builder --chown=orbin:orbin /workspace/app/target/school-*.jar app.jar
 
 # Expose default HTTP port
 EXPOSE 8080

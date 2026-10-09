@@ -21,9 +21,10 @@ import {
   RefreshCw,
   Users
 } from 'lucide-react';
-import { AttendanceStatus, WhatsAppNotificationDto, StudentResponse } from '@/lib/types';
+import { AttendanceStatus, WhatsAppNotificationDto, StudentResponse, SchoolClass, Section } from '@/lib/types';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/auth-context';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
 interface StudentAttendanceRow {
@@ -38,14 +39,45 @@ interface StudentAttendanceRow {
 
 export default function AttendancePage() {
   const { currentSchool } = useAuth();
+  const searchParams = useSearchParams();
+  const querySectionId = searchParams?.get('sectionId');
+
   const [students, setStudents] = useState<StudentAttendanceRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const [date, setDate] = useState(() => new Date().toISOString().split('T')[0]);
-  const [section, setSection] = useState('1');
+  const [section, setSection] = useState(querySectionId || '1');
+  const [sectionsList, setSectionsList] = useState<Section[]>([]);
   const [saving, setSaving] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Load real sections from PostgreSQL via Spring Boot
+  useEffect(() => {
+    async function loadAcademicSections() {
+      try {
+        const clsList = await api.getClasses();
+        if (clsList && clsList.length > 0) {
+          const allSecs: Section[] = [];
+          for (const c of clsList) {
+            try {
+              const secs = await api.getSections(String(c.id));
+              if (secs) allSecs.push(...secs);
+            } catch {}
+          }
+          setSectionsList(allSecs);
+          if (querySectionId) {
+            setSection(querySectionId);
+          } else if (allSecs.length > 0 && section === '1') {
+            setSection(String(allSecs[0].id));
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load classes/sections in attendance', err);
+      }
+    }
+    loadAcademicSections();
+  }, [querySectionId]);
 
   // WhatsApp Broadcast Modal State
   const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
@@ -293,11 +325,17 @@ export default function AttendancePage() {
             <select
               value={section}
               onChange={e => setSection(e.target.value)}
-              className="px-2 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-800"
+              className="px-2 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-800 bg-white"
             >
-              <option value="1">Section 1 (Class 5-A)</option>
-              <option value="2">Section 2 (Class 5-B)</option>
-              <option value="3">Section 3 (Class 6-A)</option>
+              {sectionsList.length === 0 ? (
+                <option value="1">Section A</option>
+              ) : (
+                sectionsList.map((sec) => (
+                  <option key={sec.id} value={sec.id}>
+                    {sec.className ? `${sec.className} - ` : ''}Section {sec.name}
+                  </option>
+                ))
+              )}
               <option value="all">All Sections</option>
             </select>
           </div>

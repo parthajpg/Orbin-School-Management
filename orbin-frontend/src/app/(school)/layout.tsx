@@ -21,7 +21,8 @@ import {
   KeyRound,
   X,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Clock
 } from 'lucide-react';
 
 export default function SchoolLayout({ children }: { children: React.ReactNode }) {
@@ -91,6 +92,12 @@ export default function SchoolLayout({ children }: { children: React.ReactNode }
       name: '1-Click Attendance',
       href: '/attendance',
       icon: CalendarCheck2,
+      roles: ['SCHOOL_ADMIN', 'PRINCIPAL', 'TEACHER']
+    },
+    {
+      name: 'Timetable & Cockpit',
+      href: '/timetable',
+      icon: Clock,
       roles: ['SCHOOL_ADMIN', 'PRINCIPAL', 'TEACHER']
     },
     {

@@ -27,5 +27,6 @@ public class StaffDto {
     private List<String> subjectsTaught;
     private String qualification;
     private LocalDate dateOfJoining;
+    private Boolean isHomeroom;
     private String status;
 }

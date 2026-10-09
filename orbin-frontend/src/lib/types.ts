@@ -69,9 +69,13 @@ export interface SchoolClass {
 export interface Section {
   id: string;
   classId: string;
+  className?: string;
+  schoolClassName?: string;
   name: string;
   roomNumber?: string;
   capacity?: number;
+  classTeacherId?: string | number;
+  classTeacherName?: string;
 }
 
 export interface Subject {
@@ -219,14 +223,34 @@ export interface SyllabusChapterDto {
 
 // ── Exams & Results ─────────────────────────────────────────────────────────
 export interface TestDto {
-  id: string;
-  name: string;
-  academicYearId: string;
-  classId: string;
-  subjectId: string;
+  id: string | number;
+  sectionId?: string | number;
+  sectionName?: string;
+  subjectId?: string | number;
+  subjectName?: string;
+  teacherName?: string;
+  title: string;
+  name?: string;
+  testDate?: string;
+  examDate?: string;
+  durationMin?: number;
   maxMarks: number;
-  passingMarks: number;
-  examDate: string;
+  passingMarks?: number;
+  instructions?: string;
+  status?: string;
+}
+
+export interface ResultDto {
+  id: string | number;
+  testId: string | number;
+  testTitle?: string;
+  studentId: string | number;
+  studentName?: string;
+  admissionNumber?: string;
+  marksObtained: number;
+  maxMarks: number;
+  percentage?: number;
+  teacherNote?: string;
 }
 
 export interface StudentMarksRow {
@@ -258,6 +282,7 @@ export interface StaffDto {
   assignedClassName?: string;
   assignedSectionId?: string;
   assignedSectionName?: string;
+  isHomeroom?: boolean;
   subjectsTaught: string[];
   qualification: string;
   dateOfJoining: string;
@@ -275,10 +300,78 @@ export interface CreateStaffRequest {
   department: string;
   assignedClassId?: string;
   assignedSectionId?: string;
-  subjectsTaught: string[];
+  isHomeroom?: boolean;
+  assignedSubjectIds?: number[];
+  subjectsTaught?: string[];
   qualification?: string;
   dateOfJoining?: string;
   initialPassword?: string;
+}
+
+// ── Timetable Management ───────────────────────────────────────────────────
+export interface PeriodSlotDto {
+  id: number;
+  slotNumber: number;
+  name: string;
+  startTime: string;
+  endTime: string;
+  isBreak: boolean;
+  tier: string;
+}
+
+export interface TimetableEntryDto {
+  id: number;
+  academicYearId: number;
+  sectionId: number;
+  className: string;
+  sectionName: string;
+  periodSlotId: number;
+  slotNumber: number;
+  slotName: string;
+  startTime: string;
+  endTime: string;
+  isBreak: boolean;
+  dayOfWeek: number;
+  dayName: string;
+  teacherId: number;
+  teacherName: string;
+  teacherEmail: string;
+  subjectId?: number;
+  subjectName?: string;
+  subjectCode?: string;
+  roomNumber?: string;
+  isSubstitution: boolean;
+  originalTeacherId?: number;
+  originalTeacherName?: string;
+}
+
+export interface CreateTimetableEntryRequest {
+  academicYearId?: number;
+  sectionId: number;
+  periodSlotId: number;
+  dayOfWeek: number;
+  teacherId: number;
+  subjectId?: number;
+  roomNumber?: string;
+}
+
+export interface TimetableImportRow {
+  className: string;
+  sectionName: string;
+  day: string;
+  periodNumber: number;
+  subjectCode?: string;
+  teacherEmail: string;
+  roomNumber?: string;
+}
+
+export interface TimetableValidationResult {
+  totalRows: number;
+  validRows: number;
+  errorRows: number;
+  errors: string[];
+  previewEntries: TimetableEntryDto[];
+  canCommit: boolean;
 }
 
 // ── WhatsApp Transactional Notifications ───────────────────────────────────
