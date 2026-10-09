@@ -43,6 +43,12 @@ class ApiClient {
     localStorage.setItem('orbin_refresh_token', refresh);
   }
 
+  private unwrapList<T>(res: any): T[] {
+    if (Array.isArray(res)) return res;
+    if (res && Array.isArray(res.content)) return res.content;
+    return [];
+  }
+
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${API_BASE_URL}${endpoint}`;
     const token = this.getAccessToken();
@@ -192,9 +198,13 @@ class ApiClient {
     const query = new URLSearchParams();
     if (params?.classId) query.append('classId', params.classId);
     if (params?.sectionId) query.append('sectionId', params.sectionId);
-    if (params?.search) query.append('search', params.search);
+    if (params?.search) {
+      query.append('search', params.search);
+      query.append('query', params.search);
+    }
     const qs = query.toString() ? `?${query.toString()}` : '';
-    return this.request<StudentResponse[]>(`/students${qs}`);
+    const res = await this.request<any>(`/students${qs}`);
+    return this.unwrapList<StudentResponse>(res);
   }
 
   async createStudent(payload: CreateStudentRequest): Promise<StudentResponse> {

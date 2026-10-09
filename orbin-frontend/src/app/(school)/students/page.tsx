@@ -82,10 +82,12 @@ export default function StudentsPage() {
         classId: classFilter || undefined,
         search: search || undefined,
       });
-      setStudents(data || []);
+      const studentList = Array.isArray(data) ? data : ((data as any)?.content || []);
+      setStudents(studentList);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to fetch students from backend';
       setError(msg);
+      setStudents([]);
     } finally {
       setLoading(false);
     }
@@ -101,7 +103,8 @@ export default function StudentsPage() {
   };
 
   // Filter students locally for responsive typing
-  const filtered = students.filter(s => {
+  const studentList = Array.isArray(students) ? students : [];
+  const filtered = studentList.filter(s => {
     const sName = (s.fullName || `${s.firstName || ''} ${s.lastName || ''}`).toLowerCase();
     const matchesSearch =
       sName.includes(search.toLowerCase()) ||
